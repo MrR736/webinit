@@ -1,0 +1,102 @@
+plugins {
+    id 'com.android.library'
+    id 'maven-publish'
+}
+
+def releaseVersion = System.getenv("GITHUB_REF_NAME") ?: "1.0.0"
+
+releaseVersion = releaseVersion.startsWith("v") ? releaseVersion.substring(1) : releaseVersion
+
+android {
+    namespace "com.mrr736.webinit"
+    compileSdk 36
+
+    ndkVersion "27.0.12077973"
+
+    defaultConfig {
+        minSdk 24
+        targetSdk 36
+
+        versionCode 100
+        versionName releaseVersion
+
+        externalNativeBuild {
+            cmake {
+                cppFlags "-std=c++17"
+            }
+        }
+
+        ndk {
+            abiFilters "arm64-v8a", "armeabi-v7a", "x86", "x86_64"
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+            version "3.22.1"
+        }
+    }
+
+    buildTypes {
+        debug {
+            debuggable true
+        }
+
+        release {
+            minifyEnabled false
+        }
+    }
+
+    libraryVariants.all { variant ->
+        variant.outputs.each { output ->
+            output.outputFileName =
+                    "${android.namespace}-${releaseVersion}-${variant.buildType.name}.aar"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation("androidx.appcompat:appcompat:1.7.1") {
+        exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk7"
+        exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk8"
+    }
+
+    implementation("androidx.webkit:webkit:1.14.0") {
+        exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk7"
+        exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk8"
+    }
+
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.8.22"
+}
+
+publishing {
+    publications {
+        release(MavenPublication) {
+            groupId = "com.mrr736.webinit"
+            artifactId = "lib"
+            version = releaseVersion
+
+            afterEvaluate {
+                from components.release
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/MrR736/webinit")
+
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+}

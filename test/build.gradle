@@ -1,0 +1,79 @@
+plugins {
+	id 'com.android.application'
+}
+
+android {
+	namespace "com.mrr736.webinit.test"
+	compileSdk 36
+
+	ndkVersion "27.0.12077973"
+
+	defaultConfig {
+		applicationId "com.mrr736.webinit.test"
+
+		minSdk 24
+		targetSdk 36
+
+		versionCode 1
+		versionName "1.0"
+
+		ndk {
+			abiFilters "arm64-v8a","armeabi-v7a","x86","x86_64"
+		}
+	}
+
+	splits {
+		abi {
+			enable true
+			reset()
+			include "arm64-v8a","armeabi-v7a","x86","x86_64"
+			universalApk true
+		}
+	}
+
+	buildTypes {
+		debug {
+			debuggable true
+			minifyEnabled false
+		}
+
+		release {
+			minifyEnabled false
+		}
+	}
+
+	compileOptions {
+		sourceCompatibility JavaVersion.VERSION_17
+		targetCompatibility JavaVersion.VERSION_17
+	}
+
+	applicationVariants.all { variant ->
+		variant.outputs.each { output ->
+			def abi = output.getFilter(com.android.build.OutputFile.ABI)
+			def appId = variant.applicationId
+			def versionName = variant.versionName
+			def buildType = variant.buildType.name
+			if (abi != null) {
+				output.outputFileName =
+					"${appId}-${versionName}-${abi}-${buildType}.apk"
+			} else {
+				output.outputFileName =
+					"${appId}-${versionName}-universal-${buildType}.apk"
+			}
+		}
+	}
+}
+
+dependencies {
+	implementation project(":lib")
+
+	implementation("androidx.appcompat:appcompat:1.7.1") {
+		exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk7"
+		exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk8"
+	}
+
+	implementation("androidx.webkit:webkit:1.14.0") {
+		exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk7"
+		exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk8"
+	}
+}
