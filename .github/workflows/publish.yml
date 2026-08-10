@@ -1,0 +1,65 @@
+name: Build and Publish WebInit
+
+on:
+  push:
+    tags:
+      - "v*"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-publish:
+    name: Build and Publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK components
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36"
+          sdkmanager "build-tools;36.0.0"
+          sdkmanager "ndk;27.0.12077973"
+          sdkmanager "cmake;3.22.1"
+
+      - name: Make Gradle executable
+        run: chmod +x ./gradlew
+
+      - name: Show Gradle version
+        run: ./gradlew --version
+
+      - name: Build release AAR
+        run: ./gradlew :lib:assembleRelease
+
+      - name: Build test APK
+        run: ./gradlew :test:assembleDebug
+
+      - name: Publish to GitHub Packages
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: ./gradlew :lib:publishReleasePublicationToGitHubPackagesRepository
+
+      - name: List generated files
+        run: |
+          echo "=== AAR ==="
+          find lib/build/outputs/aar -type f -print
+
+          echo "=== APK ==="
+          find test/build/outputs/apk -type f -print
