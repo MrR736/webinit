@@ -4,8 +4,9 @@ plugins {
 }
 
 def releaseVersion = System.getenv("GITHUB_REF_NAME") ?: "1.0.0"
-
-releaseVersion = releaseVersion.startsWith("v") ? releaseVersion.substring(1) : releaseVersion
+releaseVersion = releaseVersion.startsWith("v")
+        ? releaseVersion.substring(1)
+        : releaseVersion
 
 android {
     namespace "com.mrr736.webinit"
@@ -48,11 +49,11 @@ android {
         }
     }
 
-    libraryVariants.all { variant ->
-        variant.outputs.each { output ->
-            output.outputFileName =
-                    "${android.namespace}-${releaseVersion}-${variant.buildType.name}.aar"
-        }
+    /*
+     * This creates the SoftwareComponent named "release".
+     */
+    publishing {
+        singleVariant("release")
     }
 
     compileOptions {
@@ -75,27 +76,27 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:1.8.22"
 }
 
-publishing {
-    publications {
-        release(MavenPublication) {
-            groupId = "com.mrr736.webinit"
-            artifactId = "lib"
-            version = releaseVersion
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                groupId = "com.mrr736.webinit"
+                artifactId = "lib"
+                version = releaseVersion
 
-            afterEvaluate {
                 from components.release
             }
         }
-    }
 
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/MrR736/webinit")
+        repositories {
+            maven {
+                name = "GitHubPackages"
+                url = uri("https://maven.pkg.github.com/MrR736/webinit")
 
-            credentials {
-                username = System.getenv("GITHUB_ACTOR")
-                password = System.getenv("GITHUB_TOKEN")
+                credentials {
+                    username = System.getenv("GITHUB_ACTOR") ?: "MrR736"
+                    password = System.getenv("GITHUB_TOKEN")
+                }
             }
         }
     }
