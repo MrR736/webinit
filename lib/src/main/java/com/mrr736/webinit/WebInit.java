@@ -22,6 +22,8 @@ import java.io.InputStream;
 
 public class WebInit extends AppCompatActivity {
 
+	private final PluginManager pluginManager = new PluginManager(this);
+
 	private WebView webView;
 	private ProgressBar progressBar;
 	private FrameLayout root;
@@ -33,6 +35,25 @@ public class WebInit extends AppCompatActivity {
 
 	private volatile boolean initialized = false;
 	private volatile boolean nativeInitialized = false;
+
+	/**
+	 * Register a custom WebInit plugin.
+	 *
+	 * Must be called before super.onCreate().
+	 */
+	protected final void registerPlugin(Plugin plugin) {
+		pluginManager.register(plugin);
+	}
+
+	/** Return the WebView after it has been created. */
+	public final WebView getWebView() {
+		return webView;
+	}
+
+	/** Return the registered plugin manager for advanced integrations. */
+	protected final PluginManager getPluginManager() {
+		return pluginManager;
+	}
 
 	/*
 	 * Configure WebInit before calling super.onCreate().
@@ -130,6 +151,7 @@ public class WebInit extends AppCompatActivity {
 				return;
 			}
 			nativeInitialized = true;
+			pluginManager.onCreate();
 			/* WebView must be created on the UI thread. */
 			runOnUiThread(() -> {
 				if (isFinishing() || isDestroyed()) {
@@ -232,6 +254,9 @@ public class WebInit extends AppCompatActivity {
 		settings.setSupportMultipleWindows(true);
 		settings.setJavaScriptCanOpenWindowsAutomatically(true);
 
+		/* WebInit custom plugin bridge. */
+		webView.addJavascriptInterface(pluginManager, "WebInitPlugins");
+
 		/* WebView navigation handling. */
 		webView.setWebViewClient(
 			new WebViewClient() {
@@ -326,6 +351,7 @@ public class WebInit extends AppCompatActivity {
 		);
 		/* Put WebView below the loading indicator. */
 		root.addView(webView,0);
+		pluginManager.onWebViewReady(webView);
 		/* Start loading the local WebInit server. */
 		webView.loadUrl(localUrl);
 	}
@@ -350,6 +376,7 @@ public class WebInit extends AppCompatActivity {
 	@Override
 	protected void onDestroy() {
 		initialized = false;
+		pluginManager.onDestroy();
 		/* Destroy WebView. */
 		if (webView != null) {
 			webView.stopLoading();
