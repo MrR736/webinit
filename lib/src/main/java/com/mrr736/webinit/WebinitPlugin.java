@@ -3,40 +3,73 @@ package com.mrr736.webinit;
 import com.getcapacitor.Plugin;
 
 /**
- * Convenience wrapper for user-defined WebInit plugins.
+ * Base class for Capacitor plugins hosted by WebInit.
  *
- * Applications should normally extend this class instead of Plugin:
+ * Example:
  *
- * <pre>
- * public final class MyPlugin extends WebinitPlugin {
- *     public MyPlugin() {
- *         super("myPlugin");
- *     }
+ * @CapacitorPlugin(name = "MyPlugin")
+ * public class MyPlugin extends WebinitPlugin {
  *
- *     @Override
- *     protected void onWebViewReady(WebView webView) {
- *         // initialize JavaScript bridge
- *     }
- *
- *     @Override
- *     protected String invoke(String action, String data) {
- *         // handle JavaScript calls
- *         return "{\"ok\":true}";
- *     }
+ *	@PluginMethod
+ *	public void hello(PluginCall call) {
+ *		call.resolve();
+ *	}
  * }
- * </pre>
  */
 public abstract class WebinitPlugin extends Plugin {
-    protected WebinitPlugin() {
-        super();
-    }
 
-    protected void onWebinitCreate() {
-    }
+	private WebInit webInit;
 
-    protected void onWebinitWebViewReady() {
-    }
+	/**
+	 * Called by WebInit when this plugin is registered.
+	 *
+	 * This is intentionally separate from Capacitor's Plugin.load().
+	 */
+	final void attachWebInit(WebInit webInit) {
+		if (this.webInit != null && this.webInit != webInit) {
+			throw new IllegalStateException(
+				"Plugin is already attached to another WebInit instance"
+			);
+		}
 
-    protected void onWebinitDestroy() {
-    }
+		this.webInit = webInit;
+		onWebinitRegister();
+	}
+
+	/**
+	 * Return the WebInit host.
+	 */
+	protected final WebInit getWebInit() {
+		if (webInit == null) {
+			throw new IllegalStateException(
+				"Plugin is not registered with WebInit"
+			);
+		}
+		return webInit;
+	}
+
+	/**
+	 * Called when the plugin is registered with WebInit.
+	 */
+	protected void onWebinitRegister() {
+	}
+
+	/**
+	 * Called after the Capacitor Bridge has loaded the plugin
+	 * and WebInit has finished native initialization.
+	 */
+	protected void onWebinitCreate() {
+	}
+
+	/**
+	 * Called after the WebView and Capacitor Bridge are ready.
+	 */
+	protected void onWebinitWebViewReady() {
+	}
+
+	/**
+	 * Called before WebInit destroys the Capacitor Bridge.
+	 */
+	protected void onWebinitDestroy() {
+	}
 }

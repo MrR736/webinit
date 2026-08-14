@@ -3,7 +3,7 @@ plugins {
 	id 'maven-publish'
 }
 
-def releaseVersion = System.getenv("GITHUB_REF_NAME") ?: "1.0.2"
+def releaseVersion = System.getenv("GITHUB_REF_NAME") ?: "1.0.3"
 releaseVersion = releaseVersion.startsWith("v")
 		? releaseVersion.substring(1)
 		: releaseVersion
@@ -18,7 +18,7 @@ android {
 		minSdk 24
 		targetSdk 36
 
-		versionCode 102
+		versionCode 103
 		versionName releaseVersion
 
 		externalNativeBuild {
