@@ -27,7 +27,16 @@ import com.getcapacitor.Plugin;
  * </pre>
  */
 public abstract class WebinitPlugin extends Plugin {
-    protected WebinitPlugin(String name) {
-        super(name);
+    protected WebinitPlugin() {
+        super();
+    }
+
+    protected void onWebinitCreate() {
+    }
+
+    protected void onWebinitWebViewReady() {
+    }
+
+    protected void onWebinitDestroy() {
     }
 }
