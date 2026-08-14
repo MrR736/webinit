@@ -1,5 +1,7 @@
 package com.mrr736.webinit;
 
+import com.getcapacitor.Plugin;
+
 /**
  * Convenience wrapper for user-defined WebInit plugins.
  *
