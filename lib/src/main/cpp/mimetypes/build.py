@@ -1,0 +1,203 @@
+#!/bin/python
+# -*- coding: utf-8 -*-
+#
+# This file is part of the mimetypes library
+#
+# Copyright (c) 2023, zero.kwok@foxmail.com
+# Copyright (c) 2026, MrR736
+#
+# For the full copyright and license information, please view the LICENSE
+# file that was distributed with this source code.
+
+import os
+import re
+import json
+import copy
+import platform
+import mimetypes
+
+mimetypes.init(files=None)
+
+local = os.path.abspath(os.path.dirname(__file__))
+items = copy.copy(mimetypes.types_map)
+addin = {}
+try:
+    with open(os.path.join(local, 'collection.json'), 'rb') as f:
+        addin.update(json.loads(f.read().decode()))
+except FileNotFoundError:
+    pass
+
+try:
+    with open(os.path.join(local, 'collection.custom.json'), 'rb') as f:
+        addin.update(json.loads(f.read().decode()))
+except FileNotFoundError:
+    pass
+
+predefine = {
+    ".m4a"    : "audio/mp4",
+    ".m4b"    : "audio/mp4",
+    ".m4p"    : "audio/mp4",
+    ".m4r"    : "audio/mp4",
+    ".m4v"    : "video/mp4",
+    ".m4u"    : "video/vnd.mpegurl",
+    ".pjpeg"  : "image/pjpeg",
+    ".pjp"    : "image/pjpeg",
+    ".ape"    : "audio/ape",
+    ".numbers": "application/x-iwork-numbers-sffnumbers",
+    ".pages"  : "application/x-iwork-pages-sffpages",
+}
+addin.update(predefine)
+
+normalized = {}
+for key, value in addin.items():
+    if not isinstance(key, str) or not isinstance(value, str):
+        continue
+
+    key = key.strip().lower()
+    value = value.strip().lower()
+
+    if not key:
+        continue
+
+    if not key.startswith("."):
+        key = "." + key
+
+    if value:
+        normalized[key] = value
+
+addin = normalized
+
+items.update({key: addin[key] for key in addin if key not in items})
+with open(os.path.join(local, 'collection.json'), 'wb') as f:
+    f.write(json.dumps(items, indent=2, sort_keys=True).encode())
+print(f'Original: {len(mimetypes.types_map)}, Additional: {len(addin)}, Output: {len(items)}')
+
+header = '''\
+// The file is automatically generated, changes will be overwritten, 
+// from the mimetypes library.
+//
+// Copyright (c) 2023, zero.kwok@foxmail.com
+// Copyright (c) 2026, MrR736
+//
+// For the full copyright and license information, please view the LICENSE
+// file that was distributed with this source code.
+
+#ifndef mimetypes_h__
+#define mimetypes_h__
+
+#include <map>
+#include <cctype>
+#include <string>
+#include <string.h>
+#include <algorithm>
+
+#ifdef USE_GHC_FILESYSTEM
+#include "ghc/filesystem.hpp"
+#else
+#include <filesystem>
+#endif
+
+namespace mimetypes {
+
+#ifdef USE_GHC_FILESYSTEM
+namespace filesystem = ghc::filesystem;
+#else
+namespace filesystem = std::filesystem;
+#endif
+
+namespace detail {
+
+    struct const_strcmp {
+        bool operator()(const char* a, const char* b) const {
+            return strcmp(a, b) < 0;
+        }
+    };
+
+    const static std::map<const char*, const char*, const_strcmp> __mimetypes =  {\
+'''
+
+footer = '''\
+    }; // __mimetypes
+} // namespace detail
+
+inline std::string to_extension(const std::string& mime_type)
+{
+    if (mime_type.empty()) return "";
+
+    auto _lower = [](std::string s) -> std::string {
+        std::transform(
+            s.begin(),s.end(),s.begin(),
+            [](unsigned char c) {
+                return std::tolower(c);
+            }
+        );
+        return s;
+    };
+
+    std::string mime = _lower(mime_type);
+    for (const auto& item : detail::__mimetypes) {
+        if (_lower(item.second) == mime) return item.first;
+    }
+
+    return "";
+}
+
+inline std::string from_extension(const std::string& extension, bool strict = false)
+{
+    if (extension.empty())
+        return strict ? "" : "application/octet-stream";
+
+    auto _lower = [](std::string s) -> std::string {
+        std::transform(s.begin(), s.end(), s.begin(),
+            [](unsigned char c) {
+                return std::tolower(c);
+            }
+        );
+        return s;
+    };
+
+    auto _get = [&](auto name) {
+        auto item = detail::__mimetypes.find(name);
+        if (item != detail::__mimetypes.end())
+            return item->second;
+        return strict ? "" : "application/octet-stream";
+    };
+
+    auto extension1 = _lower(extension);
+    if (extension1[0] == '.' && extension1.size() > 1)
+        return _get(extension1.c_str() + 1);
+    else
+        return _get(extension1.c_str());
+}
+
+inline std::string from_filename(const filesystem::path& filename, bool strict = false) {
+    return ::mimetypes::from_extension(filename.extension().u8string(), strict);
+}
+
+} // namespace mimetypes
+
+#endif // mimetypes_h__
+'''
+
+items = sorted(items.items(), key=lambda x: (x[1], x[0]))
+lines = re.split('\r\n|\n', header)
+
+classes = set()
+for k, v in items:
+    v = v.lower()
+    prefix = v[0 : v.find('/')]
+    subfix = v[len(prefix) + 1: -1]
+    if prefix not in classes:
+        classes.add(prefix)
+        lines.append('    ')
+        lines.append(f'        // {prefix}')
+    lines.append(f'        {{ "{k[1:]}", "{v}" }},')
+
+lines += re.split('\r\n|\n', footer)
+
+out = os.path.join(local, 'mimetypes.hpp')
+ends = '\r\n' if platform.system() == 'Windows' else '\n'
+with open(out, 'wb') as f:
+    f.write(ends.join(lines).encode('utf-8'))
+
+print(f'Write output to file: {out}')

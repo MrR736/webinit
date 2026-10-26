@@ -1,0 +1,6 @@
+{
+  ".glb": "model/gltf-binary",
+  ".gltf": "model/gltf+json",
+  ".bbmodel": "model/vnd.blockbench.bbmodel",
+  ".fbx": "application/octet-stream"
+}

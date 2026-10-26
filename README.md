@@ -24,8 +24,8 @@ http://127.0.0.1:8080/
 
 ## Requirements
 
-* Android API 24+
-* Android SDK 36
+* Android API 26+
+* Android SDK 37
 * NDK `27.0.12077973`
 * C++17
 * Gradle 8+
@@ -55,11 +55,11 @@ Then add WebInit:
 
 ```gradle
 dependencies {
-    implementation "com.github.mrr736:webinit:1.0.0"
+    implementation "com.github.mrr736:webinit:1.1.0"
 }
 ```
 
-Replace `1.0.0` with the desired Git tag or release.
+Replace `1.1.0` with the desired Git tag or release.
 
 ## Build from Source
 
@@ -85,7 +85,7 @@ lib/build/outputs/aar/
 For example:
 
 ```text
-com.mrr736.webinit-1.0.0-release.aar
+com.mrr736.webinit-1.1.0-release.aar
 ```
 
 ## Local AAR
@@ -95,14 +95,14 @@ If you do not want to use JitPack, copy the generated AAR into your application'
 ```text
 app/
 └── libs/
-    └── com.mrr736.webinit-1.0.0-release.aar
+    └── com.mrr736.webinit-1.1.0-release.aar
 ```
 
 Then add:
 
 ```gradle
 dependencies {
-    implementation files("libs/com.mrr736.webinit-1.0.0-release.aar")
+    implementation files("libs/com.mrr736.webinit-1.1.0-release.aar")
 }
 ```
 
@@ -180,14 +180,9 @@ import com.mrr736.webinit.WebInit;
 public class MainActivity extends WebInit {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Init("webinit.pak", 8080, "127.0.0.1");
         /* WebInit performs the actual initialization. */
+        Init("webinit.pak", 8080, "127.0.0.1");
         super.onCreate(savedInstanceState);
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
     }
 }
 ```
@@ -277,7 +272,7 @@ android {
         targetSdk 36
 
         versionCode 100
-        versionName "1.0.0"
+        versionName "1.1.0"
 
         externalNativeBuild {
             cmake {
@@ -303,7 +298,7 @@ MAJOR.MINOR.PATCH
 For example:
 
 ```text
-1.0.0
+1.1.0
 1.0.1
 1.1.0
 2.0.0
@@ -312,107 +307,20 @@ For example:
 Create a release tag:
 
 ```bash
-git tag 1.0.0
-git push origin 1.0.0
+git tag 1.1.0
+git push origin 1.1.0
 ```
 
 The tag can then be used by JitPack:
 
 ```gradle
-implementation "com.github.mrr736:webinit:1.0.0"
+implementation "com.github.mrr736:webinit:1.1.0"
 ```
 
 ## Acknowledgements
 
-- miniz
-- libdeflate
-- ghc::filesystem
+* [miniz](https://github.com/richgel999/miniz)
+* [libdeflate](https://github.com/ebiggers/libdeflate)
+- [ghc::filesystem](https://github.com/gulrak/filesystem)
+- [mimetypes](https://github.com/ZeroKwok/mimetypes)
 
-
-
-## Custom WebInit plugins
-
-`WebinitPlugin` is the public wrapper for adding application-specific plugins to
-the WebInit library.
-
-```java
-package com.example.app;
-
-import android.webkit.WebView;
-import com.mrr736.webinit.WebinitPlugin;
-
-public final class MyPlugin extends WebinitPlugin {
-    public MyPlugin() {
-        super("myPlugin");
-    }
-
-    @Override
-    protected void onWebViewReady(WebView webView) {
-        // Optional: initialize your JavaScript integration.
-    }
-
-    @Override
-    protected String invoke(String action, String data) {
-        if ("hello".equals(action)) {
-            return "{\"ok\":true,\"message\":\"Hello from Android\"}";
-        }
-
-        throw new IllegalArgumentException("Unknown action: " + action);
-    }
-}
-```
-
-Register it from the `WebInit` Activity before `super.onCreate()`:
-
-```java
-@Override
-protected void onCreate(Bundle savedInstanceState) {
-    Init("webinit.pak", 8080, "127.0.0.1");
-
-    registerPlugin(new MyPlugin());
-
-    super.onCreate(savedInstanceState);
-}
-```
-
-JavaScript can then call the plugin through the WebInit bridge:
-
-```js
-const result = WebInitPlugins.invoke(
-    "myPlugin",
-    "hello",
-    "{}"
-);
-
-console.log(JSON.parse(result));
-```
-
-The available plugin names can be queried with:
-
-```js
-const plugins = JSON.parse(WebInitPlugins.list());
-```
-
-### Plugin lifecycle
-
-```text
-registerPlugin()
-      |
-      v
-  onRegister()
-      |
-      v
-   onCreate()
-      |
-      v
-onWebViewReady()
-      |
-      v
-     invoke()
-      |
-      v
-   onDestroy()
-```
-
-Plugins must be registered before `WebInit.onCreate()` and are automatically
-attached to the WebInit lifecycle.
